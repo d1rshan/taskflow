@@ -1,4 +1,26 @@
 import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { randomBytes } from "crypto";
+
+// ---------- SCHEMA HELPERS ----------
+
+function generateId(length = 32): string {
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  const bytes = randomBytes(length);
+  let result = "";
+
+  for (let i = 0; i < length; i++) {
+    result += chars[bytes[i] % chars.length];
+  }
+
+  return result;
+}
+
+const id = text("id")
+  .$defaultFn(() => generateId())
+  .primaryKey();
+
+//----------- BETTER AUTH GENERATED SCHEMA ---------
 
 export const user = pgTable("user", {
   id: text("id").primaryKey(),
@@ -58,4 +80,11 @@ export const verification = pgTable("verification", {
     .defaultNow()
     .$onUpdate(() => /* @__PURE__ */ new Date())
     .notNull(),
+});
+
+// ----------- CUSTOM SCHEMA ---------
+
+export const workflow = pgTable("workflow", {
+  id,
+  name: text("name").notNull(),
 });
