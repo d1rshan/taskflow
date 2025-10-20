@@ -3,6 +3,7 @@ import { inngest } from "./client";
 import { workflow } from "@/db/schema";
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
+import * as Sentry from "@sentry/nextjs";
 
 export const helloWorld = inngest.createFunction(
   { id: "hello-world" },
@@ -28,6 +29,13 @@ export const execute = inngest.createFunction(
   { event: "execute/ai" },
   async ({ event, step }) => {
     await step.sleep("pretend", "5s");
+
+    Sentry.logger.info("User triggered test log", {
+      log_source: "sentry_test",
+    });
+    console.warn("something is missing");
+    console.error("This is an error I want to track.");
+
     const { steps: geminiSteps } = await step.ai.wrap(
       "gemini-generate-text",
       generateText,
@@ -35,6 +43,11 @@ export const execute = inngest.createFunction(
         model: google("gemini-2.5-flash"),
         system: "You are a helpful assistant.",
         prompt: "What is 2 + 2?",
+        experimental_telemetry: {
+          isEnabled: true,
+          recordInputs: true,
+          recordOutputs: true,
+        },
       }
     );
 
