@@ -1,6 +1,6 @@
 procs:
   inngest:
-    cmd: ["pnpm", "dlx", "inngest-cli", "dev"]
+    cmd: ["npx", "inngest-cli", "dev"]
 
   next:
-    cmd: ["pnpm", "run", "dev"]
+    cmd: ["npm", "run", "dev"]
