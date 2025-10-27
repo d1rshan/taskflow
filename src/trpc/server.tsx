@@ -20,7 +20,13 @@ export const trpc = createTRPCOptionsProxy({
 
 export const caller = appRouter.createCaller(createTRPCContext);
 
-// Reusable utils to use when prefetching queries on the server
+/**
+ * Prefetches a TRPC query on the server, using the stable request-scoped query client.
+ *
+ * Prefetches an infinite query when `queryOptions.queryKey[1]?.type === "infinite"`, otherwise prefetches a normal query.
+ *
+ * @param queryOptions - TRPC query options describing the query to prefetch (query key, fetcher, and related options)
+ */
 export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
   queryOptions: T
 ) {
@@ -32,6 +38,12 @@ export function prefetch<T extends ReturnType<TRPCQueryOptions<any>>>(
   }
 }
 
+/**
+ * Restores React Query state from the server and renders the provided children within the hydration boundary.
+ *
+ * @param props.children - React nodes to render after hydrating the client query cache with server state
+ * @returns A React element that wraps `children` in a hydration boundary populated with the dehydrated query state
+ */
 export function HydrateClient(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
   return (
