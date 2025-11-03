@@ -18,7 +18,7 @@ function generateId(length = 32): string {
 
 const id = text("id")
   .$defaultFn(() => generateId())
-  .primaryKey();
+  .primaryKey().notNull();
 
 const createdAt = timestamp("created_at").defaultNow().notNull();
 
@@ -90,3 +90,5 @@ export const workflow = pgTable("workflow", {
   createdAt,
   updatedAt,
 });
+
+export type Workflow = typeof workflow.$inferSelect
