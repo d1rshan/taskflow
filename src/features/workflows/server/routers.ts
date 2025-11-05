@@ -9,6 +9,7 @@ import { and, eq, ilike, sql } from "drizzle-orm";
 import { generateSlug } from "random-word-slugs";
 import z from "zod";
 import { PAGINATION } from "@/config/constants";
+import { TRPCError } from "@trpc/server";
 
 export const workflowsRouter = createTRPCRouter({
   create: premiumProcedure.mutation(async ({ ctx }) => {
@@ -50,14 +51,21 @@ export const workflowsRouter = createTRPCRouter({
   getOne: protectedProcedure
     .input(z.object({ id: z.string() }))
     .query(async ({ ctx, input }) => {
-      return (
-        await db.query.workflow.findFirst({
-          where: and(
-            eq(workflow.id, input.id),
-            eq(workflow.userId, ctx.auth.user.id)
-          ),
-        })
-      )
+      const item = await db.query.workflow.findFirst({
+        where: and(
+          eq(workflow.id, input.id),
+          eq(workflow.userId, ctx.auth.user.id),
+        ),
+      });
+
+      if (!item) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Workflow not found",
+        });
+      }
+
+      return item;
     }),
   getMany: protectedProcedure
     .input(
