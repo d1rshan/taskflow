@@ -1,5 +1,6 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, pgEnum, jsonb, unique } from "drizzle-orm/pg-core";
 import { randomBytes } from "crypto";
+import { relations } from "drizzle-orm";
 
 // ---------- SCHEMA HELPERS ----------
 
@@ -91,4 +92,100 @@ export const workflow = pgTable("workflow", {
   updatedAt,
 });
 
-export type Workflow = typeof workflow.$inferSelect
+export const NodeType = {
+  INITIAL: "INITIAL",
+} as const;
+
+export type NodeType = (typeof NodeType)[keyof typeof NodeType];
+
+export const nodeTypeEnum = pgEnum(
+  "node_type",
+  [NodeType.INITIAL]
+);
+
+
+export const node = pgTable("node", {
+  id,
+  workflowId: text("workflow_id")
+    .references(() => workflow.id, { onDelete: "cascade" })
+    .notNull(),
+  name: text("name").notNull(),
+  type: nodeTypeEnum("type").notNull(),
+  position: jsonb("position").notNull(),
+  data: jsonb("data").default({}).notNull(),
+  createdAt,
+  updatedAt,
+});
+
+export const connection = pgTable(
+  "connection",
+  {
+    id,
+    workflowId: text("workflow_id")
+      .references(() => workflow.id, { onDelete: "cascade" })
+      .notNull(),
+    fromNodeId: text("from_node_id")
+      .references(() => node.id, { onDelete: "cascade" })
+      .notNull(),
+    toNodeId: text("to_node_id")
+      .references(() => node.id, { onDelete: "cascade" })
+      .notNull(),
+    fromOutput: text("from_output").default("main").notNull(),
+    toInput: text("to_input").default("main").notNull(),
+    createdAt,
+    updatedAt,
+  },
+  (t) => [
+    unique().on(
+      t.fromNodeId,
+      t.toNodeId,
+      t.fromOutput,
+      t.toInput
+    ),
+  ]
+);
+
+// --- Types ---
+export type Workflow = typeof workflow.$inferSelect;
+export type NewWorkflow = typeof workflow.$inferInsert;
+
+export type Node = typeof node.$inferSelect;
+export type NewNode = typeof node.$inferInsert;
+
+export type Connection = typeof connection.$inferSelect;
+export type NewConnection = typeof connection.$inferInsert;
+
+export const workflowRelations = relations(workflow, ({ many, one }) => ({
+  nodes: many(node),
+  connections: many(connection),
+  // Assuming you have a user relation defined elsewhere:
+  // user: one(users, { fields: [workflow.userId], references: [users.id] }),
+}));
+
+export const nodeRelations = relations(node, ({ one, many }) => ({
+  workflow: one(workflow, {
+    fields: [node.workflowId],
+    references: [workflow.id],
+  }),
+  // Distinct relations for Source vs Target connections
+  outputConnections: many(connection, { relationName: "fromNode" }),
+  inputConnections: many(connection, { relationName: "toNode" }),
+}));
+
+export const connectionRelations = relations(connection, ({ one }) => ({
+  workflow: one(workflow, {
+    fields: [connection.workflowId],
+    references: [workflow.id],
+  }),
+  fromNode: one(node, {
+    fields: [connection.fromNodeId],
+    references: [node.id],
+    relationName: "fromNode", // Links to outputConnections in Node
+  }),
+  toNode: one(node, {
+    fields: [connection.toNodeId],
+    references: [node.id],
+    relationName: "toNode", // Links to inputConnections in Node
+  }),
+}));
+
