@@ -1,25 +1,12 @@
 import { pgTable, text, timestamp, boolean, pgEnum, jsonb, unique } from "drizzle-orm/pg-core";
-import { randomBytes } from "crypto";
 import { relations } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2"
 
 // ---------- SCHEMA HELPERS ----------
 
-function generateId(length = 32): string {
-  const chars =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  const bytes = randomBytes(length);
-  let result = "";
-
-  for (let i = 0; i < length; i++) {
-    result += chars[bytes[i] % chars.length];
-  }
-
-  return result;
-}
-
 const id = text("id")
-  .$defaultFn(() => generateId())
-  .primaryKey().notNull();
+  .primaryKey()
+  .$defaultFn(() => createId());
 
 const createdAt = timestamp("created_at").defaultNow().notNull();
 
