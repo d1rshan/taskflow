@@ -89,7 +89,7 @@ export type NodeType = (typeof NodeType)[keyof typeof NodeType];
 
 export const nodeTypeEnum = pgEnum(
   "node_type",
-  [NodeType.INITIAL]
+  [NodeType.INITIAL, NodeType.MANUAL_TRIGGER, NodeType.HTTP_REQUEST]
 );
 
 

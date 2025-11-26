@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { workflow, node } from "@/db/schema"; // Import all relevant tables
+import { workflow, node, connection } from "@/db/schema"; // Import all relevant tables
 import { NodeType } from "@/db/schema"; // Import your manual Enum object
 import {
   createTRPCRouter,
@@ -53,6 +53,88 @@ export const workflowsRouter = createTRPCRouter({
           )
           .returning()
       )[0];
+    }),
+
+  update: protectedProcedure
+    .input(
+      z.object({
+        id: z.string(),
+        nodes: z.array(
+          z.object({
+            id: z.string(),
+            type: z.string().nullish(),
+            position: z.object({ x: z.number(), y: z.number() }),
+            data: z.record(z.string(), z.any()).optional(),
+          }),
+        ),
+        edges: z.array(
+          z.object({
+            source: z.string(),
+            target: z.string(),
+            sourceHandle: z.string().nullish(),
+            targetHandle: z.string().nullish(),
+          }),
+        ),
+      }),
+    )
+    .mutation(async ({ ctx, input }) => {
+      const { id, nodes, edges } = input;
+      const userId = ctx.auth.user.id;
+
+      // 1. Verify ownership before starting the transaction
+      const existingWorkflow = await db.query.workflow.findFirst({
+        where: and(eq(workflow.id, id), eq(workflow.userId, userId)),
+      });
+
+      if (!existingWorkflow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Workflow not found",
+        });
+      }
+
+      // 2. Transaction to replace Nodes and Edges
+      return await db.transaction(async (tx) => {
+        // A. Delete existing nodes 
+        // (Cascading delete in Postgres will automatically remove the connections)
+        await tx.delete(node).where(eq(node.workflowId, id));
+
+        // B. Create Nodes (only if there are nodes to insert)
+        if (nodes.length > 0) {
+          await tx.insert(node).values(
+            nodes.map((n) => ({
+              id: n.id,
+              workflowId: id,
+              name: n.type || "unknown", // Fallback name
+              type: (n.type as NodeType) || NodeType.INITIAL, // Fallback to safe Enum
+              position: n.position,
+              data: n.data || {},
+            }))
+          );
+        }
+
+        // C. Create Connections (only if there are edges to insert)
+        if (edges.length > 0) {
+          await tx.insert(connection).values(
+            edges.map((edge) => ({
+              workflowId: id,
+              fromNodeId: edge.source,
+              toNodeId: edge.target,
+              fromOutput: edge.sourceHandle || "main",
+              toInput: edge.targetHandle || "main",
+            }))
+          );
+        }
+
+        // D. Update workflow's updatedAt timestamp
+        const [updatedWorkflow] = await tx
+          .update(workflow)
+          .set({ updatedAt: new Date() })
+          .where(and(eq(workflow.id, id), eq(workflow.userId, userId)))
+          .returning();
+
+        return updatedWorkflow;
+      });
     }),
 
   updateName: protectedProcedure
