@@ -12,8 +12,36 @@ import z from "zod";
 import { PAGINATION } from "@/config/constants";
 import { TRPCError } from "@trpc/server";
 import type { Node, Edge } from "@xyflow/react";
+import { inngest } from "@/inngest/client";
 
 export const workflowsRouter = createTRPCRouter({
+  execute: protectedProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      // 1. Fetch the workflow
+      const existingWorkflow = await db.query.workflow.findFirst({
+        where: and(
+          eq(workflow.id, input.id),
+          eq(workflow.userId, ctx.auth.user.id)
+        ),
+      });
+
+      // 2. Mimic "OrThrow" behavior
+      if (!existingWorkflow) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Workflow not found",
+        });
+      }
+
+      // 3. Send event to Inngest
+      await inngest.send({
+        name: "workflows/execute.workflow",
+        data: { workflowId: input.id },
+      });
+
+      return existingWorkflow;
+    }),
   create: premiumProcedure.mutation(async ({ ctx }) => {
     const userId = ctx.auth.user.id;
     const name = generateSlug(3);

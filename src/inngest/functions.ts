@@ -1,58 +1,54 @@
-import { db } from "@/db";
+import { NonRetriableError } from "inngest";
 import { inngest } from "./client";
-import { workflow } from "@/db/schema";
-import { google } from "@ai-sdk/google";
-import { generateText } from "ai";
-import * as Sentry from "@sentry/nextjs";
+import { db } from "@/db"
+import { topologicalSort } from "./utils";
+import { NodeType, workflow } from "@/db/schema";
+import { getExecutor } from "@/features/executions/lib/executor-registry";
+import { eq } from "drizzle-orm";
 
-export const helloWorld = inngest.createFunction(
-  { id: "hello-world" },
-  { event: "test/hello.world" },
+export const executeWorkflow = inngest.createFunction(
+  { id: "execute-workflow" },
+  { event: "workflows/execute.workflow" },
   async ({ event, step }) => {
-    await step.sleep("transcribing", "5s");
+    const workflowId = event.data.workflowId;
 
-    await step.sleep("sending-to-ai", "3s");
+    if (!workflowId) {
+      throw new NonRetriableError("Workflow ID is missing");
+    }
 
-    await step.sleep("finalizing", "2s");
-
-    await step.run("create-workflow", () => {
-      return db
-        .insert(workflow)
-        .values({ name: "Hello World Workflow" })
-        .returning();
-    });
-  }
-);
-
-export const execute = inngest.createFunction(
-  { id: "execute-ai" },
-  { event: "execute/ai" },
-  async ({ event, step }) => {
-    await step.sleep("pretend", "5s");
-
-    Sentry.logger.info("User triggered test log", {
-      log_source: "sentry_test",
-    });
-    console.warn("something is missing");
-    console.error("This is an error I want to track.");
-
-    const { steps: geminiSteps } = await step.ai.wrap(
-      "gemini-generate-text",
-      generateText,
-      {
-        model: google("gemini-2.5-flash"),
-        system: "You are a helpful assistant.",
-        prompt: "What is 2 + 2?",
-        experimental_telemetry: {
-          isEnabled: true,
-          recordInputs: true,
-          recordOutputs: true,
+    const sortedNodes = await step.run("prepare-workflow", async () => {
+      const workflowData = await db.query.workflow.findFirst({
+        where: eq(workflow.id, workflowId),
+        with: {
+          nodes: true,
+          connections: true,
         },
+      });
+
+      if (!workflowData) {
+        throw new Error("Workflow not found");
       }
-    );
+
+      return topologicalSort(workflowData.nodes, workflowData.connections);
+    });
+
+    // Initialize the context with any initial data from the trigger
+    let context = event.data.initialData || {};
+
+    // Execute each node
+    for (const node of sortedNodes) {
+      const executor = getExecutor(node.type as NodeType);
+      context = await executor({
+        data: node.data as Record<string, unknown>,
+        nodeId: node.id,
+        context,
+        step,
+      });
+    }
 
     return {
-      geminiSteps,
+      workflowId,
+      result: context
     };
-  }
+  },
 );
