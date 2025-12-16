@@ -8,7 +8,9 @@
     "start": "next start",
     "lint": "biome check",
     "format": "biome format --write",
-    "dev:all": "mprocs"
+    "ngrok:dev": "dotenv -- sh -c 'ngrok http --url=$NGROK_URL 3000'",
+    "inngest:dev": "pnpm dlx inngest-cli@latest dev",
+    "dev:all": "dotenv -- mprocs"
   },
   "dependencies": {
     "@ai-sdk/google": "^2.0.23",
@@ -39,6 +41,7 @@
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
+    "dotenv-cli": "^11.0.0",
     "drizzle-orm": "^0.44.7",
     "handlebars": "^4.7.8",
     "import-in-the-middle": "^2.0.2",
@@ -70,6 +73,7 @@
     "@types/toposort": "^2.0.7",
     "baseline-browser-mapping": "^2.9.14",
     "drizzle-kit": "^0.31.5",
+    "inngest-cli": "^1.16.0",
     "mprocs": "^0.7.3",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
