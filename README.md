@@ -1,36 +1,121 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TaskFlow
 
-## Getting Started
+**TaskFlow** is a powerful, open-source workflow automation platform built with Next.js 16. It serves as a modern alternative to tools like n8n, allowing users to create complex, visual workflows to automate tasks, connect APIs, and leverage AI capabilities.
 
-First, run the development server:
+## ✨ Key Features
+
+- **Visual Workflow Editor**: Intuitive drag-and-drop interface powered by [React Flow](https://reactflow.dev/) to design execution logic.
+- **AI-Powered Nodes**: Native integration with leading AI models:
+  - **OpenAI** (GPT-4o, etc.)
+  - **Anthropic** (Claude 3.5 Sonnet, etc.)
+  - **Google** (Gemini 1.5 Pro/Flash)
+- **Robust Execution Engine**: Reliable, durable workflow orchestration using [Inngest](https://www.inngest.com/).
+- **Secure Authentication**: Complete user management system powered by [Better Auth](https://better-auth.com/).
+- **Real-time Updates**: Live execution status tracking and feedback.
+- **Modern Tech Stack**: Built with the latest Next.js 16 features, Server Actions, and Tailwind CSS v4.
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 16](https://nextjs.org/) (App Router)
+- **Language**: [TypeScript](https://www.typescriptlang.org/)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **UI Components**: [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/)
+- **State Management**: [Jotai](https://jotai.org/), [React Query](https://tanstack.com/query/latest)
+- **Backend API**: [tRPC](https://trpc.io/)
+- **Database**: [PostgreSQL](https://www.postgresql.org/) (via [Neon](https://neon.tech/)), [Drizzle ORM](https://orm.drizzle.team/)
+- **Workflow Engine**: [Inngest](https://www.inngest.com/)
+- **Authentication**: [Better Auth](https://better-auth.com/)
+- **Billing**: [Polar.sh](https://polar.sh/)
+- **Observability**: [Sentry](https://sentry.io/)
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+
+- pnpm (recommended) or npm/yarn
+- PostgreSQL database (or a Neon project)
+
+### Installation
+
+1. **Clone the repository:**
+
+    ```bash
+    git clone https://github.com/yourusername/taskflow.git
+    cd taskflow
+    ```
+
+2. **Install dependencies:**
+
+    ```bash
+    pnpm install
+    ```
+
+3. **Environment Setup:**
+    Create a `.env` file in the root directory and add the necessary environment variables:
+
+    ```env
+    # Database
+    DATABASE_URL=postgresql://...
+
+    # Authentication (Better Auth)
+    BETTER_AUTH_SECRET=...
+    BETTER_AUTH_URL=http://localhost:3000
+
+    # Inngest
+    INNGEST_EVENT_KEY=...
+    INNGEST_SIGNING_KEY=...
+
+    # AI Providers (Optional, based on usage)
+    OPENAI_API_KEY=...
+    ANTHROPIC_API_KEY=...
+    GOOGLE_GENERATIVE_AI_API_KEY=...
+
+    # Other Services
+    NEXT_PUBLIC_APP_URL=http://localhost:3000
+    NGROK_URL=... # For local webhook testing
+    ```
+
+4. **Database Migration:**
+    Push the schema to your database:
+
+    ```bash
+    pnpm dlx drizzle-kit push
+    ```
+
+### Running the Application
+
+To start the full development environment (Next.js + Inngest + Ngrok) using `mprocs`:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm dev:all
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Alternatively, you can run services individually:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# Start Next.js dev server
+pnpm dev
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Start Inngest dev server
+pnpm inngest:dev
+```
 
-## Learn More
+## 📂 Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/                  # Next.js App Router pages and layouts
+├── components/           # Shared UI components
+├── db/                   # Database schema and Drizzle configuration
+├── features/             # Feature-based architecture
+│   ├── auth/             # Authentication components and logic
+│   ├── editor/           # Workflow editor (React Flow)
+│   ├── executions/       # Workflow execution logic
+│   ├── triggers/         # Trigger nodes (Webhooks, etc.)
+│   └── workflows/        # Workflow management
+├── inngest/              # Inngest functions and configuration
+├── lib/                  # Shared utilities and libraries
+└── trpc/                 # tRPC router and setup
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
