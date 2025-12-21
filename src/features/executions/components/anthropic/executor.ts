@@ -4,6 +4,9 @@ import { generateText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import Handlebars from "handlebars";
 import { anthropicChannel } from "@/inngest/channels/anthropic";
+import { db } from "@/db";
+import { eq } from "drizzle-orm";
+import { credential } from "@/db/schema"
 
 Handlebars.registerHelper("json", (context) => {
   const jsonString = JSON.stringify(context, null, 2);
@@ -14,6 +17,7 @@ Handlebars.registerHelper("json", (context) => {
 
 type AnthropicData = {
   variableName?: string;
+  credentialId?: string;
   model?: string;
   systemPrompt?: string;
   userPrompt?: string;
@@ -40,9 +44,20 @@ export const anthropicExecutor: NodeExecutor<AnthropicData> = async ({
         status: "error",
       }),
     );
-    throw new NonRetriableError("OpenAI node: Variable name is missing");
+    throw new NonRetriableError("Anthropic node: Variable name is missing");
   }
 
+  if (!data.credentialId) {
+    await publish(
+      anthropicChannel().status({
+        nodeId,
+        status: "error",
+      }),
+    );
+    throw new NonRetriableError("Anthropic node: Credential is required");
+  }
+
+  // TODO Throw if credential is missing
   if (!data.userPrompt) {
     await publish(
       anthropicChannel().status({
@@ -50,10 +65,8 @@ export const anthropicExecutor: NodeExecutor<AnthropicData> = async ({
         status: "error",
       }),
     );
-    throw new NonRetriableError("OpenAI node: User prompt is missing");
+    throw new NonRetriableError("Anthropic node: User prompt is missing");
   }
-
-  // TODO Throw if credential is missing
 
   const systemPrompt = data.systemPrompt
     ? Handlebars.compile(data.systemPrompt)(context)
@@ -63,10 +76,19 @@ export const anthropicExecutor: NodeExecutor<AnthropicData> = async ({
 
   // TODO Fetch credential that user selected
 
-  const credentialValue = process.env.ANTHROPIC_API_KEY!;
+  const userCredential = await step.run("get-credential", () => {
+    return db.query.credential.findFirst({
+      where: eq(credential.id, data.credentialId!),
+    });
+  });
+
+  if (!userCredential) {
+    throw new NonRetriableError("Anthropic node: Credential not found");
+  }
+
 
   const anthropic = createAnthropic({
-    apiKey: credentialValue,
+    apiKey: userCredential.value,
   });
 
   try {

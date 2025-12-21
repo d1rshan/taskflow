@@ -79,6 +79,34 @@ export const workflow = pgTable("workflow", {
   updatedAt,
 });
 
+
+
+export const CredentialType = {
+  OPENAI: "OPENAI",
+  ANTHROPIC: "ANTHROPIC",
+  GEMINI: "GEMINI",
+} as const;
+
+export type CredentialType = (typeof CredentialType)[keyof typeof CredentialType];
+
+export const credentialTypeEnum = pgEnum("credential_type", [
+  CredentialType.OPENAI,
+  CredentialType.ANTHROPIC,
+  CredentialType.GEMINI,
+]);
+
+
+export const credential = pgTable("credential", {
+  id,
+  name: text("name").notNull(),
+  value: text("value").notNull(),
+  type: credentialTypeEnum("type").notNull(),
+  userId: text("user_id").notNull(), // Assuming you handle User relation externally
+  createdAt,
+  updatedAt
+});
+
+
 export const NodeType = {
   INITIAL: "INITIAL",
   MANUAL_TRIGGER: "MANUAL_TRIGGER",
@@ -96,12 +124,13 @@ export const nodeTypeEnum = pgEnum(
   [NodeType.INITIAL, NodeType.MANUAL_TRIGGER, NodeType.HTTP_REQUEST, NodeType.GOOGLE_FORM_TRIGGER, NodeType.ANTHROPIC, NodeType.GEMINI, NodeType.OPENAI]
 );
 
-
 export const node = pgTable("node", {
   id,
   workflowId: text("workflow_id")
     .references(() => workflow.id, { onDelete: "cascade" })
     .notNull(),
+  credentialId: text("credential_id")
+    .references(() => credential.id, { onDelete: "set null" }),
   name: text("name").notNull(),
   type: nodeTypeEnum("type").notNull(),
   position: jsonb("position").notNull(),
@@ -142,6 +171,9 @@ export const connection = pgTable(
 export type Workflow = typeof workflow.$inferSelect;
 export type NewWorkflow = typeof workflow.$inferInsert;
 
+export type Credential = typeof credential.$inferSelect;
+export type NewCredential = typeof credential.$inferInsert;
+
 export type Node = typeof node.$inferSelect;
 export type NewNode = typeof node.$inferInsert;
 
@@ -155,12 +187,20 @@ export const workflowRelations = relations(workflow, ({ many, one }) => ({
   // user: one(users, { fields: [workflow.userId], references: [users.id] }),
 }));
 
+export const credentialRelations = relations(credential, ({ many }) => ({
+  nodes: many(node), // One credential can satisfy multiple nodes
+}));
+
 export const nodeRelations = relations(node, ({ one, many }) => ({
   workflow: one(workflow, {
     fields: [node.workflowId],
     references: [workflow.id],
   }),
   // Distinct relations for Source vs Target connections
+  credential: one(credential, {
+    fields: [node.credentialId],
+    references: [credential.id],
+  }),
   outputConnections: many(connection, { relationName: "fromNode" }),
   inputConnections: many(connection, { relationName: "toNode" }),
 }));
