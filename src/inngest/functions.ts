@@ -1,8 +1,8 @@
 import { NonRetriableError } from "inngest";
 import { inngest } from "./client";
-import { db } from "@/db"
+import { db } from "@/db";
 import { topologicalSort } from "./utils";
-import { NodeType, workflow } from "@/db/schema";
+import { ExecutionStatus, NodeType, workflow, execution } from "@/db/schema";
 import { getExecutor } from "@/features/executions/lib/executor-registry";
 import { eq } from "drizzle-orm";
 import { httpRequestChannel } from "./channels/http-request";
@@ -16,6 +16,17 @@ export const executeWorkflow = inngest.createFunction(
   {
     id: "execute-workflow",
     retries: 0, // TODO: Remove in production
+    onFailure: async ({ event }) => {
+      // Drizzle: Update execution on failure
+      return db
+        .update(execution)
+        .set({
+          status: ExecutionStatus.FAILED,
+          error: event.data.error.message,
+          errorStack: event.data.error.stack,
+        })
+        .where(eq(execution.inngestEventId, event.data.event.id!));
+    },
   },
   {
     event: "workflows/execute.workflow",
@@ -29,11 +40,21 @@ export const executeWorkflow = inngest.createFunction(
     ],
   },
   async ({ event, step, publish }) => {
+    const inngestEventId = event.id;
     const workflowId = event.data.workflowId;
 
-    if (!workflowId) {
-      throw new NonRetriableError("Workflow ID is missing");
+    if (!inngestEventId || !workflowId) {
+      throw new NonRetriableError("Event ID or workflow ID is missing");
     }
+
+    // Drizzle: Create execution log
+    await step.run("create-execution", async () => {
+      return db.insert(execution).values({
+        workflowId,
+        inngestEventId,
+        status: ExecutionStatus.RUNNING, // Explicitly set starting status if desired, or rely on default
+      });
+    });
 
     const sortedNodes = await step.run("prepare-workflow", async () => {
       const workflowData = await db.query.workflow.findFirst({
@@ -62,13 +83,25 @@ export const executeWorkflow = inngest.createFunction(
         nodeId: node.id,
         context,
         step,
-        publish
+        publish,
       });
     }
 
+    // Drizzle: Update execution on success
+    await step.run("update-execution", async () => {
+      return db
+        .update(execution)
+        .set({
+          status: ExecutionStatus.SUCCESS,
+          completedAt: new Date(),
+          output: context,
+        })
+        .where(eq(execution.inngestEventId, inngestEventId));
+    });
+
     return {
       workflowId,
-      result: context
+      result: context,
     };
-  },
+  }
 );

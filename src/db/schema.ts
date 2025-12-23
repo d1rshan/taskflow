@@ -79,8 +79,6 @@ export const workflow = pgTable("workflow", {
   updatedAt,
 });
 
-
-
 export const CredentialType = {
   OPENAI: "OPENAI",
   ANTHROPIC: "ANTHROPIC",
@@ -95,7 +93,6 @@ export const credentialTypeEnum = pgEnum("credential_type", [
   CredentialType.GEMINI,
 ]);
 
-
 export const credential = pgTable("credential", {
   id,
   name: text("name").notNull(),
@@ -104,6 +101,39 @@ export const credential = pgTable("credential", {
   userId: text("user_id").notNull(), // Assuming you handle User relation externally
   createdAt,
   updatedAt
+});
+
+export const ExecutionStatus = {
+  RUNNING: "RUNNING",
+  SUCCESS: "SUCCESS",
+  FAILED: "FAILED",
+} as const;
+
+export type ExecutionStatus = (typeof ExecutionStatus)[keyof typeof ExecutionStatus];
+
+export const executionStatusEnum = pgEnum("execution_status", [
+  ExecutionStatus.RUNNING,
+  ExecutionStatus.SUCCESS,
+  ExecutionStatus.FAILED,
+]);
+
+export const execution = pgTable("execution", {
+  id,
+  workflowId: text("workflow_id")
+    .references(() => workflow.id, { onDelete: "cascade" })
+    .notNull(),
+
+  status: executionStatusEnum("status").default(ExecutionStatus.RUNNING).notNull(),
+
+  error: text("error"),
+  errorStack: text("error_stack"),
+
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+
+  inngestEventId: text("inngest_event_id").unique().notNull(),
+
+  output: jsonb("output"),
 });
 
 
@@ -174,21 +204,30 @@ export type NewWorkflow = typeof workflow.$inferInsert;
 export type Credential = typeof credential.$inferSelect;
 export type NewCredential = typeof credential.$inferInsert;
 
+export type Execution = typeof execution.$inferSelect;
+export type NewExecution = typeof execution.$inferInsert;
+
 export type Node = typeof node.$inferSelect;
 export type NewNode = typeof node.$inferInsert;
 
 export type Connection = typeof connection.$inferSelect;
 export type NewConnection = typeof connection.$inferInsert;
 
-export const workflowRelations = relations(workflow, ({ many, one }) => ({
+export const workflowRelations = relations(workflow, ({ many }) => ({
   nodes: many(node),
   connections: many(connection),
-  // Assuming you have a user relation defined elsewhere:
-  // user: one(users, { fields: [workflow.userId], references: [users.id] }),
+  executions: many(execution), // Relation to executions
 }));
 
 export const credentialRelations = relations(credential, ({ many }) => ({
   nodes: many(node), // One credential can satisfy multiple nodes
+}));
+
+export const executionRelations = relations(execution, ({ one }) => ({
+  workflow: one(workflow, {
+    fields: [execution.workflowId],
+    references: [workflow.id],
+  }),
 }));
 
 export const nodeRelations = relations(node, ({ one, many }) => ({
@@ -196,7 +235,6 @@ export const nodeRelations = relations(node, ({ one, many }) => ({
     fields: [node.workflowId],
     references: [workflow.id],
   }),
-  // Distinct relations for Source vs Target connections
   credential: one(credential, {
     fields: [node.credentialId],
     references: [credential.id],
