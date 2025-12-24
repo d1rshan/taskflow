@@ -5,6 +5,7 @@ import { and, eq, ilike, sql, desc } from "drizzle-orm";
 import { createTRPCRouter, premiumProcedure, protectedProcedure } from "@/trpc/init";
 import z from "zod";
 import { TRPCError } from "@trpc/server";
+import { encrypt } from "@/lib/encryption";
 
 export const credentialsRouter = createTRPCRouter({
   create: premiumProcedure
@@ -24,7 +25,7 @@ export const credentialsRouter = createTRPCRouter({
           name,
           userId: ctx.auth.user.id,
           type,
-          value, // TODO: Consider encrypting in production
+          value: encrypt(value), // TODO: Consider encrypting in production
         })
         .returning();
 
@@ -64,7 +65,7 @@ export const credentialsRouter = createTRPCRouter({
         .set({
           name,
           type,
-          value,
+          value: encrypt(value),
         })
         .where(
           and(

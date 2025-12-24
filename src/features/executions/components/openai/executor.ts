@@ -7,6 +7,7 @@ import { openAiChannel } from "@/inngest/channels/openai";
 import { db } from "@/db"
 import { eq } from "drizzle-orm";
 import { credential } from "@/db/schema";
+import { decrypt } from "@/lib/encryption";
 
 Handlebars.registerHelper("json", (context) => {
   const jsonString = JSON.stringify(context, null, 2);
@@ -84,7 +85,7 @@ export const openAiExecutor: NodeExecutor<OpenAiData> = async ({
   }
 
   const openai = createOpenAI({
-    apiKey: userCredential.value,
+    apiKey: decrypt(userCredential.value),
   });
 
   try {

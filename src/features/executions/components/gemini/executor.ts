@@ -7,6 +7,7 @@ import { geminiChannel } from "@/inngest/channels/gemini";
 import { db } from "@/db"
 import { eq } from "drizzle-orm";
 import { credential } from "@/db/schema";
+import { decrypt } from "@/lib/encryption";
 
 Handlebars.registerHelper("json", (context) => {
   const jsonString = JSON.stringify(context, null, 2);
@@ -84,7 +85,7 @@ export const geminiExecutor: NodeExecutor<GeminiData> = async ({
   }
 
   const google = createGoogleGenerativeAI({
-    apiKey: userCredential.value,
+    apiKey: decrypt(userCredential.value),
   });
 
   try {
