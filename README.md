@@ -1,6 +1,6 @@
 # TaskFlow
 
-**TaskFlow** is a powerful, open-source workflow automation platform built with Next.js 16. It serves as a modern alternative to tools like n8n, allowing users to create complex, visual workflows to automate tasks, connect APIs, and leverage AI capabilities.
+**TaskFlow** is a powerful, open-source workflow automation platform built with Next.js. Create complex, visual workflows to automate tasks, connect APIs, and leverage AI capabilities.
 
 ## ✨ Key Features
 
@@ -26,7 +26,6 @@
 - **Workflow Engine**: [Inngest](https://www.inngest.com/)
 - **Authentication**: [Better Auth](https://better-auth.com/)
 - **Billing**: [Polar.sh](https://polar.sh/)
-- **Observability**: [Sentry](https://sentry.io/)
 
 ## 🚀 Getting Started
 

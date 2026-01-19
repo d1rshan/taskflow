@@ -15,7 +15,7 @@ import { anthropicChannel } from "./channels/anthropic";
 export const executeWorkflow = inngest.createFunction(
   {
     id: "execute-workflow",
-    retries: 0, // TODO: Remove in production
+    retries: process.env.NODE_ENV === "production" ? 3 : 0,
     onFailure: async ({ event }) => {
       // Drizzle: Update execution on failure
       return db
