@@ -19,9 +19,6 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TaskFlow",
   description: "A powerful, open-source workflow automation platform built with Next.js. Create complex, visual workflows to automate tasks, connect APIs, and leverage AI capabilities.",
-  icons: {
-    icon: "/favicon.ico",
-  },
 };
 
 export default function RootLayout({
