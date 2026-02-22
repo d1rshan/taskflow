@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { TRPCReactProvider } from "@/trpc/client";
-import { Toaster } from "sonner";
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { Provider } from "jotai";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
+import { TRPCReactProvider } from "@/trpc/client";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -18,7 +19,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TaskFlow",
-  description: "A powerful, open-source workflow automation platform built with Next.js. Create complex, visual workflows to automate tasks, connect APIs, and leverage AI capabilities.",
+  description:
+    "A powerful, open-source workflow automation platform built with Next.js. Create complex, visual workflows to automate tasks, connect APIs, and leverage AI capabilities.",
 };
 
 export default function RootLayout({
@@ -27,16 +29,23 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <TRPCReactProvider>
           <NuqsAdapter>
             <Provider>
-              {children}
+              <ThemeProvider
+                attribute="class"
+                defaultTheme="system"
+                enableSystem
+                disableTransitionOnChange
+              >
+                {children}
+                <Toaster />
+              </ThemeProvider>
             </Provider>
-            <Toaster />
           </NuqsAdapter>
         </TRPCReactProvider>
       </body>

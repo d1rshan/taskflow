@@ -206,6 +206,31 @@
 }
 
 /* React Flow node selection styles */
-.react-flow__node.selected #base-node {
-  @apply ring-3 ring-muted-foreground/25 shadow-lg;
+.react-flow__node.selected [data-slot="base-node"] {
+  @apply ring-3 ring-primary/30 shadow-lg;
+}
+
+.react-flow .react-flow__controls {
+  @apply overflow-hidden rounded-md border border-border bg-card shadow-sm;
+  background-color: var(--card);
+  border-color: var(--border);
+}
+
+.react-flow .react-flow__controls-button {
+  @apply border-border bg-card text-foreground transition-colors hover:bg-accent;
+  background-color: var(--card);
+  border-color: var(--border);
+  color: var(--foreground);
+}
+
+.react-flow .react-flow__controls-button svg {
+  stroke: currentColor;
+}
+
+.react-flow__minimap {
+  @apply rounded-md border border-border bg-card/90;
+}
+
+.react-flow__attribution {
+  @apply hidden;
 }

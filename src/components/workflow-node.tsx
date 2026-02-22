@@ -12,7 +12,7 @@ interface WorkflowNodeProps {
   onSettings?: () => void;
   name?: string;
   description?: string;
-};
+}
 
 export function WorkflowNode({
   children,
@@ -20,12 +20,12 @@ export function WorkflowNode({
   onDelete,
   onSettings,
   name,
-  description
+  description,
 }: WorkflowNodeProps) {
   return (
     <>
       {showToolbar && (
-        <NodeToolbar>
+        <NodeToolbar className="rounded-md border bg-popover p-1 text-popover-foreground shadow-sm">
           <Button size="sm" variant="ghost" onClick={onSettings}>
             <SettingsIcon className="size-4" />
           </Button>
@@ -39,11 +39,9 @@ export function WorkflowNode({
         <NodeToolbar
           position={Position.Bottom}
           isVisible
-          className="max-w-[200px] text-center"
+          className="max-w-[220px] rounded-md border bg-popover px-3 py-2 text-center text-popover-foreground shadow-sm"
         >
-          <p className="font-medium">
-            {name}
-          </p>
+          <p className="font-medium">{name}</p>
           {description && (
             <p className="text-muted-foreground truncate text-sm">
               {description}
@@ -53,4 +51,4 @@ export function WorkflowNode({
       )}
     </>
   );
-};
+}
